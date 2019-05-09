@@ -7,7 +7,7 @@ end
 make_class(name) = StandardClass(name, [], [])
 
 macro defclass(name, s, sl)
-    esc( :( $(name) = make_class($:(name)) ) )
+    esc( :( $(name) = make_class($(QuoteNode(name))) ) )
 end
 
 @macroexpand @defclass(C1, [], [])
