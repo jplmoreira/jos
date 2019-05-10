@@ -24,12 +24,31 @@ mutable struct StandardInstance
 end
 
 function make_instance(class::StandardClass, args...) 
+	isIn = true
+	for a in args 
+		if !(a.first in class.slots)
+			#println(a, " is roh roh with base class ", class.name)
+			#println(a.first, " is not in ", class.slots)
+			for h in class.hierarchy
+				isIn = false
+				if a.first in h.slots
+					isIn = true
+					#print(a.first, " is in ", h.slots)
+					#println()
+					break
+				end
+			end
+			if !isIn
+				println(a, " is roh roh with class ", class.name)
+			end
+		end
+	end
 	instance = StandardInstance(class, Dict(args))
 	return instance
 end
 
 c3i1 = make_instance(C3, :a=>1, :b=>2, :c=>3, :d=>4)
-c3i2 = make_instance(C3, :b=>2)
+c3i2 = make_instance(C3, :b=>2, :e=>23)
 
 println(c3i1)
 println(c3i2)
