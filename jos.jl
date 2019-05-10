@@ -1,15 +1,17 @@
 struct StandardClass
     name
-    superclasses::Array
+    hierarchy::Array
     slots::Array
 end
 
-make_class(name) = StandardClass(name, [], [])
+make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 
-macro defclass(name, s, sl)
-    esc( :( $(name) = make_class($(QuoteNode(name))) ) )
+macro defclass(name, hierarchy, slots...)
+    :( $(esc(name)) = make_class($(esc(QuoteNode(name))), $(esc(hierarchy)), $(esc([slots...]))) )
 end
 
-@macroexpand @defclass(C1, [], [])
+@macroexpand @defclass(C3, [C1, C2], c)
 
-@defclass(C1, [], [])
+@defclass(C1, [], a)
+@defclass(C2, [], b, c)
+@defclass(C3, [C1, C2], d)
