@@ -6,6 +6,15 @@ end
 
 make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 
+function get_precedence(name, hierarchy::Array)
+	let previous = hierarchy[1], local_precedence = [name=>previous,]
+		for class in hierarchy[2:end]
+			local_precedence = [local_precedence..., previous=>class]
+		end
+		local_precedence
+	end
+end
+
 macro defclass(name, hierarchy, slots...)
     :( $(esc(name)) = make_class($(esc(QuoteNode(name))), $(esc(hierarchy)), $(esc([slots...]))) )
 end
