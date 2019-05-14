@@ -7,8 +7,12 @@ end
 make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 
 function get_precedence(class::StandardClass)
-	let hierarchy = class.hierarchy, previous = hierarchy[1], local_precedence = [class=>previous,],
-		sequence = get_super_sequence(class)
+	let sequence = get_super_sequence(class), precedence = [get_local_precedence(class), get_super_precedence(sequence[2:end])]
+	end
+end
+
+function get_local_precedence(class::StandardClass)
+	let hierarchy = class.hierarchy, previous = hierarchy[1], local_precedence = [class=>previous,]
 		for c in hierarchy[2:end]
 			local_precedence = [local_precedence..., previous=>c]
 		end
@@ -16,9 +20,28 @@ function get_precedence(class::StandardClass)
 	end
 end
 
+function get_super_precedence(super_classes::Array)
+	let precedence = []
+		while length(super_classes) > 0
+			class = splice!(super_classes, 1)
+			hierarchy = class.hierarchy
+			if (length(hierarchy) > 0)
+				for super in hierarchy
+					precendence = [precedence..., class=>super]
+					super_classes = [super_classes..., super]
+				end
+			else
+				precedence = [precedence..., class=>false] # N sei o que usar para substituir standard object
+			end
+		end
+		precedence
+	end
+end
+
 function get_super_sequence(class::StandardClass)
 	let sequence = [], classes = [class,]
-		for c in classes
+		while length(classes) > 0
+			c = splice!(classes, 1)
 			sequence = [sequence..., c]
 			hierarchy = c.hierarchy
 			classes = [classes..., hierarchy...]
@@ -44,9 +67,9 @@ mutable struct StandardInstance
 	slots::Dict
 end
 
-function make_instance(class::StandardClass, args...) 
+function make_instance(class::StandardClass, args...)
 	isIn = true
-	for a in args 
+	for a in args
 		if !(a.first in class.slots)
 			#println(a, " is roh roh with base class ", class.name)
 			#println(a.first, " is not in ", class.slots)
@@ -86,6 +109,5 @@ end
 
 set_slot!(c3i2, :b, 3)
 
-println(get_slot(c3i2, :b)) 
+println(get_slot(c3i2, :b))
 println([get_slot(c3i1, s) for s in [:a, :b, :c]])
-
