@@ -6,12 +6,24 @@ end
 
 make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 
-function get_precedence(name, hierarchy::Array)
-	let previous = hierarchy[1], local_precedence = [name=>previous,]
-		for class in hierarchy[2:end]
-			local_precedence = [local_precedence..., previous=>class]
+function get_precedence(class::StandardClass)
+	let hierarchy = class.hierarchy, previous = hierarchy[1], local_precedence = [class=>previous,],
+		sequence = get_super_sequence(class)
+		for c in hierarchy[2:end]
+			local_precedence = [local_precedence..., previous=>c]
 		end
 		local_precedence
+	end
+end
+
+function get_super_sequence(class::StandardClass)
+	let sequence = [], classes = [class,]
+		for c in classes
+			sequence = [sequence..., c]
+			hierarchy = c.hierarchy
+			classes = [classes..., hierarchy...]
+		end
+		sequence
 	end
 end
 
