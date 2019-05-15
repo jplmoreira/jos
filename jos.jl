@@ -6,15 +6,66 @@ end
 
 make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 
-function get_precedence(class::StandardClass)
-	let sequence = get_super_sequence(class), precedence = [get_local_precedence(class), get_super_precedence(sequence[2:end])]
+function get_precedence_list(class::StandardClass)
+	let sequence = get_super_sequence(class), precedence = [get_local_precedence(class)..., get_super_precedence(sequence[2:end])...],
+		list = []
+		while length(precedence) > 0
+			specific = get_most_specific(list, precedence)
+			push!(list, specific)
+			index = 1
+			while index <= length(precedence)
+				if precedence[index].first == specific
+					deleteat!(precedence, index)
+				end
+				index += 1
+			end
+		end
+		list
 	end
+end
+
+function get_most_specific(list::Array, precedence::Array)
+	let predecessors = get_no_predecessors(precedence)
+		if length(predecessors) == 1	
+			return predecessors[1]
+		else
+			for class in reverse(list)
+				for super in class.hierarchy
+					if super in predecessors
+						return super
+					end
+				end
+			end
+		end
+	end
+	println("Couldn't find most specific")
+end
+
+function get_no_predecessors(precedence::Array)
+	let list = []
+		for p in precedence
+			class = p.first
+			if (no_predecessor(class, precedence))
+				push!(list, class)
+			end
+		end
+		list
+	end
+end
+
+function no_predecessor(class::StandardClass, precedence::Array)
+	for pair in precedence
+		if pair.second == class
+			return false
+		end
+	end
+	true
 end
 
 function get_local_precedence(class::StandardClass)
 	let hierarchy = class.hierarchy, previous = hierarchy[1], local_precedence = [class=>previous,]
 		for c in hierarchy[2:end]
-			local_precedence = [local_precedence..., previous=>c]
+			push!(local_precedence, previous=>c)
 		end
 		local_precedence
 	end
@@ -27,11 +78,11 @@ function get_super_precedence(super_classes::Array)
 			hierarchy = class.hierarchy
 			if (length(hierarchy) > 0)
 				for super in hierarchy
-					precendence = [precedence..., class=>super]
-					super_classes = [super_classes..., super]
+					push!(precedence, class=>super)
+					push!(super_classes, super)
 				end
 			else
-				precedence = [precedence..., class=>false] # N sei o que usar para substituir standard object
+				push!(precedence, class=>false) # N sei o que usar para substituir standard object
 			end
 		end
 		precedence
@@ -42,8 +93,8 @@ function get_super_sequence(class::StandardClass)
 	let sequence = [], classes = [class,]
 		while length(classes) > 0
 			c = splice!(classes, 1)
-			sequence = [sequence..., c]
 			hierarchy = c.hierarchy
+			push!(sequence, c)
 			classes = [classes..., hierarchy...]
 		end
 		sequence
