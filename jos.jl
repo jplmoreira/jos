@@ -144,6 +144,50 @@ function set_slot!(obj, slot, value)
 end
 
 ##############################################################################
+#### Generic functions
+##############################################################################
+
+mutable struct GenericFunction
+	name
+	params::Array
+	methods::Array
+end
+
+struct GenericMethod
+	specializers::Array
+	lambda
+end
+
+macro defgeneric(expr)
+	if expr.head == :call
+		name = expr.args[1]
+		params = expr.args[2:end]
+   		:( $(esc(name)) = GenericFunction($(esc(QuoteNode(name))), $(esc(params)), []) )
+	else
+		error("Can only define a function")
+	end
+end
+
+macro defmethod(expr)
+	if expr.head != :(=)
+		error("Method definitions needs an assignment")
+	else
+		name = expr.args[1].args[1]
+		specializers = map(x -> isa(x, Expr) ? x.args[1]=>x.args[2] : x=>nothing, expr.args[1].args[2:end])
+		lambda = expr.args[2].args[2]
+		:( push!($(esc(name)).methods, GenericMethod($(specializers), $(lambda))) )
+	end
+end
+
+function (g::GenericFunction)(args...)
+	if length(g.methods) == 0
+		error("No defined methods for generic function ", g.name)
+	else
+		error("No matching method for passed arguments")
+	end
+end
+
+##############################################################################
 #### Tests
 ##############################################################################
 
