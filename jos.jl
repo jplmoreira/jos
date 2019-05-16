@@ -137,9 +137,12 @@ setproperty!(obj::StandardInstance, f::Symbol, v) = getfield(obj, :slots)[f] = v
 
 
 function get_slot(obj, slot)
-	return getproperty(obj, slot)
+	getproperty(obj, slot)
 end
 
+function set_slot!(obj, slot, value)
+	setproperty!(obj, slot, value)
+end
 
 ##############################################################################
 #### Tests
@@ -159,14 +162,9 @@ println(c3i2)
 
 println(get_slot(c3i2, :d))
 
-function set_slot!(obj, slot, value)
-	setproperty!(obj, slot, value)
-end
-
 set_slot!(c3i2, :d, "outra cena")
 println(get_slot(c3i2, :d))
 
-println(get_slot(c3i2, :d))
-c3i2.d = "darth vader is your papi"
+c3i2.d = "cena random" 
 println(c3i2.d)
 #println([get_slot(c3i1, s) for s in [:a, :b, :c]])
