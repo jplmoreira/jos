@@ -175,7 +175,12 @@ macro defmethod(expr)
 	else
 		name = expr.args[1].args[1]
 		specializers = map(x -> isa(x, Expr) ? x.args[1]=>x.args[2] : x=>nothing, expr.args[1].args[2:end])
-		lambda = expr.args[2].args[2]
+		#lambda = expr.args[2].args[2]
+		lambda = function a(args)
+			#expr.args[2].args[2] #isto da uma quote :c
+			20+args	# mas assim funciona
+		end
+
 		:( push!($(esc(name)).methods, GenericMethod($(specializers), $(esc(QuoteNode(lambda))))) )
 	end
 end
@@ -183,6 +188,8 @@ end
 function (g::GenericFunction)(args...)
 	if length(g.methods) == 0
 		error("No defined methods for generic function ", g.name)
+	elseif true
+		g.methods[1].lambda(args...)
 	else
 		error("No matching method for passed arguments")
 	end
