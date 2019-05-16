@@ -175,13 +175,17 @@ macro defmethod(expr)
 	else
 		name = expr.args[1].args[1]
 		specializers = map(x -> isa(x, Expr) ? x.args[1]=>x.args[2] : x=>nothing, expr.args[1].args[2:end])
-		#lambda = expr.args[2].args[2]
-		lambda = function a(args)
-			#expr.args[2].args[2] #isto da uma quote :c
+
+		function a(args)
 			20+args	# mas assim funciona
+			#expr.args[2].args[2] #isto da uma quote :c
 		end
 
-		:( push!($(esc(name)).methods, GenericMethod($(specializers), $(esc(QuoteNode(lambda))))) )
+		lambda = a
+
+		:( push!($(esc(name)).methods,
+			GenericMethod($(specializers),
+			$(esc(expr.args[1].args[2].args[1])) -> $(esc(expr.args[2].args[2])))) )
 	end
 end
 
