@@ -1,3 +1,6 @@
+import Base.getproperty
+import Base.setproperty!
+
 ##############################################################################
 #### Standard Class definition and its methods
 ##############################################################################
@@ -13,14 +16,6 @@ make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 macro defclass(name, hierarchy, slots...)
     :( $(esc(name)) = make_class($(esc(QuoteNode(name))), $(esc(hierarchy)), $(esc([slots...]))) )
 end
-
-macro stuff(expr)
-	dump(expr)
-end
-
-@defclass(C1, [], a)
-@defclass(C2, [], b, c)
-@defclass(C3, [C1, C2], d)
 
 ##############################################################################
 #### Precedence list calculation (uses CLOS topological sorting)
@@ -128,26 +123,39 @@ end
 #### Standard Instance definition and its methods
 ##############################################################################
 
-function make_instance(class, args...)
-	values = Array{Int32}(undef, length(args))
-	c = class(values...)
-	for a in args
-		setproperty!(c, a.first, a.second)
-	end
-	return c
+struct StandardInstance
+	class::StandardClass
+	slots::Dict
 end
 
-c1i1 = make_instance(C1, :a=>2)
-c2i1 = make_instance(C2, :b=>4, :c=>7)
-c3i1 = make_instance(C3, :d=>1)
-c3i2 = make_instance(C3, :d=>2)
+function make_instance(class::StandardClass, args...)
+	instance = StandardInstance(class, Dict(args))
+end
 
-println(c3i1)
-println(c3i2)
+getproperty(obj::StandardInstance, f::Symbol) = getfield(obj, :slots)[f]
+setproperty!(obj::StandardInstance, f::Symbol, v) = getfield(obj, :slots)[f] = v
+
 
 function get_slot(obj, slot)
 	return getproperty(obj, slot)
 end
+
+
+##############################################################################
+#### Tests
+##############################################################################
+
+@defclass(C1, [], a)
+@defclass(C2, [], b, c)
+@defclass(C3, [C1, C2], d)
+
+c1i1 = make_instance(C1, :a=>2)
+c2i1 = make_instance(C2, :b=>4, :c=>7)
+c3i1 = make_instance(C3, :d=>1)
+c3i2 = make_instance(C3, :d=>"cenas")
+
+println(c3i1)
+println(c3i2)
 
 println(get_slot(c3i2, :d))
 
@@ -155,10 +163,10 @@ function set_slot!(obj, slot, value)
 	setproperty!(obj, slot, value)
 end
 
-set_slot!(c3i2, :d, 5)
+set_slot!(c3i2, :d, "outra cena")
 println(get_slot(c3i2, :d))
 
 println(get_slot(c3i2, :d))
-c3i2.d = 3
+c3i2.d = "darth vader is your papi"
 println(c3i2.d)
 #println([get_slot(c3i1, s) for s in [:a, :b, :c]])
