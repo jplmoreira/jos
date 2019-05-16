@@ -134,10 +134,30 @@ struct StandardInstance
 end
 
 function make_instance(class::StandardClass, args...)
-	instance = StandardInstance(class, Dict(args))
+	init = map(x -> x=>undef, class.slots)
+	slots = Dict{Symbol, Any}(init)
+	for s in args
+		if haskey(slots, s.first)
+			slots[s.first] = s.second
+		else
+			error("Slot $(s.first) is missing")
+		end
+	end
+	instance = StandardInstance(class, slots)
 end
 
-getproperty(obj::StandardInstance, f::Symbol) = getfield(obj, :slots)[f]
+function getproperty(obj::StandardInstance, f::Symbol)
+	if haskey(getfield(obj, :slots), f)
+		v = getfield(obj, :slots)[f]
+		if v == undef
+			error("Slot $f is unbound")
+		else
+			v
+		end
+	else
+		error("Slot $f is missing")
+	end
+ end
 setproperty!(obj::StandardInstance, f::Symbol, v) = getfield(obj, :slots)[f] = v
 
 function get_slot(obj, slot)
