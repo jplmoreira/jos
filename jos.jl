@@ -169,13 +169,14 @@ macro defgeneric(expr)
 end
 
 macro defmethod(expr)
+	dump(expr)
 	if expr.head != :(=)
 		error("Method definitions needs an assignment")
 	else
 		name = expr.args[1].args[1]
 		specializers = map(x -> isa(x, Expr) ? x.args[1]=>x.args[2] : x=>nothing, expr.args[1].args[2:end])
 		lambda = expr.args[2].args[2]
-		:( push!($(esc(name)).methods, GenericMethod($(specializers), $(lambda))) )
+		:( push!($(esc(name)).methods, GenericMethod($(specializers), $(esc(QuoteNode(lambda))))) )
 	end
 end
 
