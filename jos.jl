@@ -125,7 +125,7 @@ end
 
 struct StandardInstance
 	class::StandardClass
-	slots::Dict
+	slots::Dict{Symbol, Any}
 end
 
 function make_instance(class::StandardClass, args...)
