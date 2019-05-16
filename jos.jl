@@ -169,23 +169,18 @@ macro defgeneric(expr)
 end
 
 macro defmethod(expr)
-	dump(expr)
 	if expr.head != :(=)
 		error("Method definitions needs an assignment")
 	else
 		name = expr.args[1].args[1]
 		specializers = map(x -> isa(x, Expr) ? x.args[1]=>x.args[2] : x=>nothing, expr.args[1].args[2:end])
-
-		function a(args)
-			20+args	# mas assim funciona
-			#expr.args[2].args[2] #isto da uma quote :c
+		parameters = map(x -> isa(x,Expr) ? x.args[1] : x, expr.args[1].args[2:end])
+		quote
+			function lambda($(map(esc, parameters)...))
+				$(esc(expr.args[2]))
+			end
+			make_method($(esc(name)), $(specializers), lambda)
 		end
-
-		lambda = a
-
-		:( push!($(esc(name)).methods,
-			GenericMethod($(specializers),
-			$(esc(expr.args[1].args[2].args[1])) -> $(esc(expr.args[2].args[2])))) )
 	end
 end
 
@@ -196,6 +191,15 @@ function (g::GenericFunction)(args...)
 		g.methods[1].lambda(args...)
 	else
 		error("No matching method for passed arguments")
+	end
+end
+
+function make_method(generic, specializers, lambda)
+	if length(generic.params) == length(specializers) &&
+		generic.params == map(x -> x.first, specializers)
+		push!(generic.methods, GenericMethod(specializers, lambda))
+	else
+		error("Method parameters are not consistent with generic function")
 	end
 end
 
