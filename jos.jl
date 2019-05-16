@@ -47,43 +47,36 @@ function get_super_sequence(class::StandardClass)
 	end
 end
 
-# Returns a list of pairs for the precedence of the received class
-function get_local_precedence(class::StandardClass)
-	let hierarchy = class.hierarchy, previous = hierarchy[1], local_precedence = [class=>previous,]
-		for c in hierarchy[2:end]
-			push!(local_precedence, previous=>c)
+# Returns a complete list of ordered pairs of the received set of classes
+function get_ordered_pairs(sequence::Array)
+	let set = []
+		for class in sequence
+			set = [set...,get_local_pairs(class)...]
 		end
-		local_precedence
+		unique!(set)
 	end
 end
 
-# Returns a list of pairs for the precedence of the super-classes of a given class
-function get_super_precedence(super_classes::Array)
-	let precedence = []
-		while length(super_classes) > 0
-			class = splice!(super_classes, 1)
-			hierarchy = class.hierarchy
-			if length(hierarchy) > 0
-				for super in hierarchy
-					pair = class=>super
-					if !(pair in precedence)
-						push!(precedence, class=>super)
-					end
-					if !(super in precedence)
-						push!(super_classes, super)
-					end
-				end
-			elseif !((class=>false) in precedence)
-				push!(precedence, class=>false) # N sei o que usar para substituir standard object
+# Returns a list of ordered pairs of the precedence of the received class
+function get_local_pairs(class::StandardClass)
+	let hierarchy = class.hierarchy
+		if length(hierarchy) > 0
+			previous = hierarchy[1]
+			local_pairs = [class=>previous,]
+			for c in hierarchy[2:end]
+				push!(local_pairs, previous=>c)
+				previous = c
 			end
+			local_pairs
+		else
+			[class=>false,]
 		end
-		precedence
 	end
 end
 
-# Returns true if the received class has no predecessor on the received precedence pairs list
-function no_predecessor(class::StandardClass, precedence::Array)
-	for pair in precedence
+# Returns true if the received class has no predecessor on the received pairs list
+function no_predecessor(class::StandardClass, pairs::Array)
+	for pair in pairs
 		if pair.second == class
 			return false
 		end
@@ -91,12 +84,12 @@ function no_predecessor(class::StandardClass, precedence::Array)
 	true
 end
 
-# Returns a list of the classes with no predecessors on the received precedence pairs list
-function get_no_predecessors(precedence::Array)
+# Returns a list of the classes with no predecessors on the received pairs list
+function get_no_predecessors(pairs::Array)
 	let list = []
-		for p in precedence
-			class = p.first
-			if (no_predecessor(class, precedence))
+		for pair in pairs
+			class = pair.first
+			if (no_predecessor(class, pairs))
 				push!(list, class)
 			end
 		end
@@ -105,38 +98,34 @@ function get_no_predecessors(precedence::Array)
 end
 
 # Returns the most specific class according to the received set of classes and its precedence pairs list
-function get_most_specific(list::Array, precedence::Array)
-	let predecessors = get_no_predecessors(precedence)
-		if length(predecessors) == 1
-			return predecessors[1]
-		else
-			for class in reverse(list)
-				for super in class.hierarchy
-					if super in predecessors
-						return super
-					end
+function get_most_specific(predecessors::Array, list::Array)
+	if length(predecessors) == 1
+		return predecessors[1]
+	else
+		for class in reverse(list)
+			for super in class.hierarchy
+				if super in predecessors
+					return super
 				end
 			end
 		end
+		error("Ordered pairs are inconsistent")
 	end
-	println("Couldn't find most specific")
 end
 
 # Returns the precedence list of the received class, according to the CLOS topological sorting
 function get_precedence_list(class::StandardClass)
-	let sequence = get_super_sequence(class), precedence = [get_local_precedence(class)..., get_super_precedence(sequence[2:end])...],
-		list = []
-		while length(precedence) > 0
-			specific = get_most_specific(list, precedence)
+	let sequence = get_super_sequence(class), pairs = get_ordered_pairs(sequence),
+		list = [], no_predecessor_classes = get_no_predecessors(pairs)
+		while length(no_predecessor_classes) > 0
+			specific = get_most_specific(no_predecessor_classes, list)
 			push!(list, specific)
-			index = 1
-			while index <= length(precedence)
-				if precedence[index].first == specific
-					deleteat!(precedence, index)
-				else
-					index += 1
-				end
-			end
+			filter!(x -> x != specific, sequence)
+			filter!(x -> x.first != specific, pairs)
+			no_predecessor_classes = get_no_predecessors(pairs)
+		end
+		if length(sequence) > 0
+			error("The super-class set is inconsistent")
 		end
 		list
 	end
