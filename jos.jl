@@ -11,7 +11,12 @@ struct StandardClass
     slots::Array
 end
 
-make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
+function make_class(name, hierarchy, slots)
+	for class in hierarchy
+		slots = vcat(slots, class.slots)
+	end
+	StandardClass(name, hierarchy, slots)
+end
 
 macro defclass(name, hierarchy, slots...)
     :( $(esc(name)) = make_class($(esc(QuoteNode(name))), $(esc(hierarchy)), $(esc([slots...]))) )
@@ -216,11 +221,7 @@ c2i1 = make_instance(C2, :b=>4, :c=>7)
 c3i1 = make_instance(C3, :d=>1)
 c3i2 = make_instance(C3, :d=>"cenas")
 
-println(c3i1)
-println(c3i2)
-
 println(get_slot(c3i2, :d))
-
 set_slot!(c3i2, :d, "outra cena")
 println(get_slot(c3i2, :d))
 
