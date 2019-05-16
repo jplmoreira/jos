@@ -158,6 +158,7 @@ end
 c1i1 = make_instance(C1, :a=>2)
 c2i1 = make_instance(C2, :b=>4, :c=>7)
 c3i1 = make_instance(C3, :d=>1)
+c3i2 = make_instance(C3, :d=>2)
 
 println(c3i1)
 println(c3i2)
@@ -166,16 +167,16 @@ function get_slot(obj, slot)
 	return getproperty(obj, slot)
 end
 
-println(get_slot(c3i2, :a))
+println(get_slot(c3i2, :d))
 
 function set_slot!(obj, slot, value)
 	setproperty!(obj, slot, value)
 end
 
-set_slot!(c3i2, :a, 5)
-println(get_slot(c3i2, :a))
+set_slot!(c3i2, :d, 5)
+println(get_slot(c3i2, :d))
 
-println(get_slot(c3i2, :a))
-c3i2.a = 3
-println(c3i2.a)
+println(get_slot(c3i2, :d))
+c3i2.d = 3
+println(c3i2.d)
 #println([get_slot(c3i1, s) for s in [:a, :b, :c]])
