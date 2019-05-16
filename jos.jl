@@ -1,7 +1,6 @@
 ##############################################################################
 #### Standard Class definition and its methods
 ##############################################################################
-classes = Dict()
 
 struct StandardClass
     name
@@ -9,20 +8,14 @@ struct StandardClass
     slots::Array
 end
 
-function make_class(name, hierarchy, slots)
-	println(slots)
-	expr = quote
-		mutable struct $name
-			$(slots...)
-		end
-	end
-	global classes[name] = StandardClass(name, hierarchy, slots)
-	eval(expr)
-	return eval(name)
-end
+make_class(name, hierarchy, slots) = StandardClass(name, hierarchy, slots)
 
 macro defclass(name, hierarchy, slots...)
     :( $(esc(name)) = make_class($(esc(QuoteNode(name))), $(esc(hierarchy)), $(esc([slots...]))) )
+end
+
+macro stuff(expr)
+	dump(expr)
 end
 
 @defclass(C1, [], a)
