@@ -62,7 +62,7 @@ function get_local_pairs(class::StandardClass)
 			end
 			local_pairs
 		else
-			[class=>false,]
+			[class=>nothing,]
 		end
 	end
 end
@@ -146,6 +146,7 @@ function make_instance(class::StandardClass, args...)
 	instance = StandardInstance(class, slots)
 end
 
+# Altered get property function so that we can access to the slots using the '.'
 function getproperty(obj::StandardInstance, f::Symbol)
 	if haskey(getfield(obj, :slots), f)
 		v = getfield(obj, :slots)[f]
@@ -209,42 +210,83 @@ macro defmethod(expr)
 	end
 end
 
-function (g::GenericFunction)(args...)
-	if length(g.methods) == 0
-		error("No defined methods for generic function ", g.name)
-	elseif true
-		g.methods[1].lambda(args...)
-	else
-		error("No matching method for passed arguments")
-	end
-end
-
+# Adds a method to the generic function if the parameters of both are consistent. 
+# If it exists, replaces the method with the same specializers
 function make_method(generic, specializers, lambda)
 	if length(generic.params) == length(specializers) &&
 		generic.params == map(x -> x.first, specializers)
+		filter!(x -> x.specializers != specializers, generic.methods)
 		push!(generic.methods, GenericMethod(specializers, lambda))
 	else
 		error("Method parameters are not consistent with generic function")
 	end
 end
 
-##############################################################################
-#### Tests
-##############################################################################
+# Makes GenericFunction struct callable
+# Verifies if the generic function call is correct
+# Calls the best applicable method to the received arguments
+function (g::GenericFunction)(args...)
+	if length(g.methods) == 0
+		error("No defined methods for generic function ", g.name)
+	elseif length(args) != length(g.params)
+		error("Generic function needs ", length(g.params), " argument(s)")
+	elseif length(intersect(map(x -> isa(x, StandardInstance), args), false)) > 0
+		error("Generic functions are only applicable to standard instances")
+	else
+		find_best_applicable_method(g.methods, args).lambda(args...)
+	end
+end
 
-@defclass(C1, [], a)
-@defclass(C2, [], b, c)
-@defclass(C3, [C1, C2], d)
+# Finds the best applicable method with the received argumetns
+function find_best_applicable_method(methods::Array, args)
+	println("applicable")
+	let applicables = find_applicable_methods(methods, args)
+		if length(applicables) == 0
+			error("No applicable method")
+		end
+		applicables[1]
+	end
+end
 
-c1i1 = make_instance(C1, :a=>2)
-c2i1 = make_instance(C2, :b=>4, :c=>7)
-c3i1 = make_instance(C3, :d=>1)
-c3i2 = make_instance(C3, :d=>"cenas")
+# Returns all the applicable to the received args, these methods are sorted by specificity
+function find_applicable_methods(methods::Array, args)
+	let list = []
+		for method in methods
+			applicable = true
+			index = 1
+			while index <= length(args)
+				name = method.specializers[index].second
+				if name != nothing
+					precedence = get_precedence_list(getfield(args[index], :class))
+					names = map(x -> x.name, precedence)
+					if !(name in names)
+						applicable = false
+						break
+					end
+				end
+				index += 1
+			end
+			if applicable
+				push!(list, method)
+			end
+		end
+		sort(list, lt=(x,y)->is_more_specific(x, y, args))
+	end	
+end
 
-println(get_slot(c3i2, :d))
-set_slot!(c3i2, :d, "outra cena")
-println(get_slot(c3i2, :d))
-
-c3i2.d = "cena random"
-println(c3i2.d)
-#println([get_slot(c3i1, s) for s in [:a, :b, :c]])
+# Sorting function for specificity of methods, according to the received arguments
+function is_more_specific(m1::GenericMethod, m2::GenericMethod, args)
+	let index = 1
+		while index <= length(args)
+			name1 = m1.specializers[index].second
+			name2 = m2.specializers[index].second 
+			if name1 != name2
+				class = getfield(args[index], :class)
+				precedence_list = map(x -> x.name, get_precedence_list(class))
+				return findfirst(x -> x == name1, precedence_list) < findfirst(x -> x == name2, precedence_list)
+			end
+			index += 1
+		end
+	end
+	true
+end
